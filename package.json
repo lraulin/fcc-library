@@ -19,6 +19,7 @@
     "mocha": "^3.2.0",
     "mongodb": "^2.2.16",
     "mongoose": "^5.10.11",
+    "nocache": "^2.1.0",
     "zombie": "^5.0.5"
   },
   "engines": {
