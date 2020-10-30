@@ -1,24 +1,27 @@
-/*
- *
- *
- *       Complete the API routing below
- *
- *
- */
-
 "use strict";
 
-var expect = require("chai").expect;
+const path = require("path");
+require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
 const mongoose = require("mongoose");
-var ObjectId = require("mongodb").ObjectId;
-require("dotenv").config;
-const { INTERNAL_SERVER_ERROR, OK, NOT_FOUND } = require("http-status-codes");
-const MONGODB_CONNECTION_STRING = process.env.DB;
-//Example connection: MongoClient.connect(MONGODB_CONNECTION_STRING, function(err, db) {});
+const {
+  INTERNAL_SERVER_ERROR,
+  OK,
+  NOT_FOUND,
+  BAD_REQUEST,
+} = require("http-status-codes");
+
+const { MONGO_URI } = process.env;
+
+console.log(MONGO_URI);
+
+mongoose.connect(MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
 
 const bookSchema = new mongoose.Schema({
   title: String,
-  comments: Array[String],
+  comments: [String],
 });
 
 const Book = mongoose.model("Book", bookSchema);
@@ -36,10 +39,10 @@ const makeBookResponse = ({ _id, title, comments = [] }) => ({
   comments,
 });
 
-const makeBooksResponse = ({ _id, title, comments = [] }) => ({
+const makeBookCommentCountResponse = ({ _id, title, comments = [] }) => ({
   _id,
   title,
-  commentCount: commentCount.length,
+  commentcount: comments.length,
 });
 
 module.exports = function (app) {
@@ -47,9 +50,9 @@ module.exports = function (app) {
     .route("/api/books")
     .get(async (req, res) => {
       try {
-        const books = await Book.find().select("_id title comments").ekec();
+        const books = await Book.find().select("_id title comments").exec();
         if (books) {
-          const resBody = books.map(makeBooksResponse);
+          const resBody = books.map(makeBookCommentCountResponse);
           return res.status(OK).send(resBody);
         }
         res.status(OK).send([]);
@@ -59,11 +62,13 @@ module.exports = function (app) {
     })
 
     .post(async (req, res) => {
-      const title = req.body.title;
+      const { title } = req.body;
+      if (!title) {
+        return res.status(BAD_REQUEST).send("missing title");
+      }
       try {
         const book = await Book.create({ title });
-        const { _id, title } = book;
-        res.status(OK).send({ _id, title });
+        res.status(OK).send({ _id: book._id, title: book.title });
       } catch (error) {
         handleError(error, res);
       }
